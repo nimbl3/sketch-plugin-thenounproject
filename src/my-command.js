@@ -36,8 +36,8 @@ export function fetch(context) {
         var response    = NSURLConnection.sendSynchronousRequest_returningResponse_error(request, null, null);
 
         var responseString = NSString.alloc().initWithData_encoding(response, NSUTF8StringEncoding);
-        selectedImages = iconUrls(JSON.parse(responseString))
-        selectedImages.length > 0 ? insertToSketch() : alert("Not found", "Error")
+        allImages = iconUrls(JSON.parse(responseString))
+        allImages.length > 0 ? showSelectableImages() : alert("Not found", "Error")
         // if (!response && response.length() === 0) {
         //   alert(urlArrays);
         // }
@@ -104,6 +104,77 @@ export function fetch(context) {
             imagesCollection.push(newImage)
         }
         return imagesCollection
+    }
+
+    function showSelectableImages() {
+        // Show images
+        var context = options.context;
+        var webviewResource = options.webviewResource;
+        var panelSettings = options.panelSettings;
+        var delegateListeners = options.delegateListeners;
+        
+        try {
+            var resourcePath = context.plugin.urlForResourceNamed(webviewResource).path();
+            var timestamp = Date.now();
+            var url = encodeURI('file://' + resourcePath + '#' + timestamp);
+
+            // Main window
+            var title = "Nimbl3 nounproject by Po";
+            var identifier = getIdentifier(context);
+            var threadDictionary = NSThread.mainThread().threadDictionary();
+
+            if (threadDictionary[identifier]) {
+                return;
+            }
+
+            var frame = NSMakeRect(0, 0, 400, 550);
+
+            var panel = NSPanel.alloc().init();
+            panel.setTitle(title);
+            panel.setTitlebarAppearsTransparent(true);
+
+            panel.standardWindowButton(NSWindowCloseButton).setHidden(false);
+            panel.standardWindowButton(NSWindowMiniaturizeButton).setHidden(true);
+            panel.standardWindowButton(NSWindowZoomButton).setHidden(true);
+
+            panel.setFrame_display(frame, false);
+            panel.setStyleMask(NSTexturedBackgroundWindowMask | NSTitledWindowMask | NSClosableWindowMask);
+            panel.setBackgroundColor(NSColor.whiteColor());
+
+            threadDictionary[identifier] = panel;
+            COScript.currentCOScript().setShouldKeepAround_(true);
+
+            var contentView = panel.contentView();
+            var webView = WebView.alloc().initWithFrame(NSMakeRect(0, 0, 400, 500));
+
+            var delegate = new MochaJSDelegate(delegateListeners);
+
+            contentView.setWantsLayer(true);
+            contentView.layer().setFrame( contentView.frame() );
+            contentView.layer().setMasksToBounds(true);
+
+            webView.setBackgroundColor(NSColor.whiteColor());
+            webView.setFrameLoadDelegate_(delegate.getClassInstance());
+            // Put data in Window Panel
+            webView.setMainFrameURL_(url);
+
+            contentView.addSubview(webView);
+
+            var closeButton = panel.standardWindowButton(NSWindowCloseButton);
+            closeButton.setCOSJSTargetFunction(function(sender) {
+                COScript.currentCOScript().setShouldKeepAround(false);
+                threadDictionary.removeObjectForKey(identifier);
+                panel.close();
+            });
+            closeButton.setAction("callAction:");
+
+            panel.becomeKeyWindow();
+            panel.setLevel(NSFloatingWindowLevel);
+            panel.center();
+            panel.makeKeyAndOrderFront(nil);
+        } catch(e) {
+            log(e);
+        }
     }
 
     function activate() {
