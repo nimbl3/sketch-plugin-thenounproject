@@ -1,3 +1,5 @@
+@import 'MochaJSDelegate.js';
+
 export function fetch(context) {
     var sketchVersion = getSketchVersionNumber()
     var doc = context.document;
@@ -21,6 +23,13 @@ export function fetch(context) {
         return parseInt(versionNumber)
     }
 
+    function getIdentifier(context) {
+        var manifestPath = context.scriptPath.stringByDeletingLastPathComponent() + '/manifest.json';
+        var manifest = NSData.dataWithContentsOfFile(manifestPath);
+        var data = NSJSONSerialization.JSONObjectWithData_options_error(manifest, 0, null);
+        return String(data.identifier).toString();
+    }
+
     function askForIcons() {
         var userInput = doc.askForUserInput_initialValue("Please, input your searches", "");
         if (userInput !== null) {
@@ -38,38 +47,20 @@ export function fetch(context) {
         var responseString = NSString.alloc().initWithData_encoding(response, NSUTF8StringEncoding);
         allImages = iconUrls(JSON.parse(responseString))
         allImages.length > 0 ? showSelectableImages() : alert("Not found", "Error")
-        // if (!response && response.length() === 0) {
-        //   alert(urlArrays);
-        // }
-        // else {
-        // log('Found favicon for URL "' + url + '"');
-        //     var faviconImage = NSImage.alloc().initWithData(response);
-        //     var faviconImageData = MSImageData.alloc().initWithImage_convertColorSpace(faviconImage, false);
-        //     var allLayers = doc.currentPage().layers();
-        //     for (var i = 0; i < selection.count(); i++) {
-        //         var layer = selection[i];
-        //         if (layer.class() == MSShapeGroup) {
-        //             fill = layer.style().fills().firstObject();
-        //             coll = fill.documentData().images();
-        //             fill.setFillType(4);         // Pattern fillType
-        //             fill.setPatternFillType(1);
-        //             fill.setIsEnabled(true);
-        //             fill.setImage(faviconImageData);
-        //         }
-        //     }
-        // }
     }
 
     function iconUrls(response) {
-        var urls = [];
+        var imagesFromURL = [];
         
         for (var i = 0; i < response['icons'].length; i++) {
-          var iconUrl = response['icons'][i]['preview_url'];
-          
-          urls.push(iconUrl);
+          var iconUrlString = response['icons'][i]['preview_url'];
+          if (iconUrlString) {
+                var newImage = NSImage.alloc().initWithContentsOfURL(NSURL.URLWithString(iconUrlString))
+                imagesFromURL.push(newImage);
+            }
         }
         
-        return urls;
+        return imagesFromURL;
     }
 
     function insertToSketch() {
@@ -108,73 +99,86 @@ export function fetch(context) {
 
     function showSelectableImages() {
         // Show images
-        var context = options.context;
-        var webviewResource = options.webviewResource;
-        var panelSettings = options.panelSettings;
-        var delegateListeners = options.delegateListeners;
-        
-        try {
-            var resourcePath = context.plugin.urlForResourceNamed(webviewResource).path();
-            var timestamp = Date.now();
-            var url = encodeURI('file://' + resourcePath + '#' + timestamp);
 
-            // Main window
-            var title = "Nimbl3 nounproject by Po";
-            var identifier = getIdentifier(context);
-            var threadDictionary = NSThread.mainThread().threadDictionary();
+        // Main window
+        var title = "Nimbl3 nounproject by Po & Ah";
+        var identifier = getIdentifier(context);
+        var threadDictionary = NSThread.mainThread().threadDictionary();
 
-            if (threadDictionary[identifier]) {
-                return;
-            }
-
-            var frame = NSMakeRect(0, 0, 400, 550);
-
-            var panel = NSPanel.alloc().init();
-            panel.setTitle(title);
-            panel.setTitlebarAppearsTransparent(true);
-
-            panel.standardWindowButton(NSWindowCloseButton).setHidden(false);
-            panel.standardWindowButton(NSWindowMiniaturizeButton).setHidden(true);
-            panel.standardWindowButton(NSWindowZoomButton).setHidden(true);
-
-            panel.setFrame_display(frame, false);
-            panel.setStyleMask(NSTexturedBackgroundWindowMask | NSTitledWindowMask | NSClosableWindowMask);
-            panel.setBackgroundColor(NSColor.whiteColor());
-
-            threadDictionary[identifier] = panel;
-            COScript.currentCOScript().setShouldKeepAround_(true);
-
-            var contentView = panel.contentView();
-            var webView = WebView.alloc().initWithFrame(NSMakeRect(0, 0, 400, 500));
-
-            var delegate = new MochaJSDelegate(delegateListeners);
-
-            contentView.setWantsLayer(true);
-            contentView.layer().setFrame( contentView.frame() );
-            contentView.layer().setMasksToBounds(true);
-
-            webView.setBackgroundColor(NSColor.whiteColor());
-            webView.setFrameLoadDelegate_(delegate.getClassInstance());
-            // Put data in Window Panel
-            webView.setMainFrameURL_(url);
-
-            contentView.addSubview(webView);
-
-            var closeButton = panel.standardWindowButton(NSWindowCloseButton);
-            closeButton.setCOSJSTargetFunction(function(sender) {
-                COScript.currentCOScript().setShouldKeepAround(false);
-                threadDictionary.removeObjectForKey(identifier);
-                panel.close();
-            });
-            closeButton.setAction("callAction:");
-
-            panel.becomeKeyWindow();
-            panel.setLevel(NSFloatingWindowLevel);
-            panel.center();
-            panel.makeKeyAndOrderFront(nil);
-        } catch(e) {
-            log(e);
+        if (threadDictionary[identifier]) {
+            return;
         }
+
+        var frame = NSMakeRect(0, 0, 400, 550);
+
+        var panel = NSPanel.alloc().init();
+        panel.setTitle(title);
+        panel.setTitlebarAppearsTransparent(true);
+
+        panel.standardWindowButton(NSWindowCloseButton).setHidden(false);
+        panel.standardWindowButton(NSWindowMiniaturizeButton).setHidden(true);
+        panel.standardWindowButton(NSWindowZoomButton).setHidden(true);
+
+        panel.setFrame_display(frame, false);
+        panel.setStyleMask(NSTexturedBackgroundWindowMask | NSTitledWindowMask | NSClosableWindowMask);
+        panel.setBackgroundColor(NSColor.whiteColor());
+        
+        threadDictionary[identifier] = panel;
+        COScript.currentCOScript().setShouldKeepAround(true);
+
+        var contentView = panel.contentView();
+        var collectionView = NSCollectionView.alloc().initWithFrame(NSMakeRect(0, 0, frame.size.width, frame.size.height));
+        
+        //datasource & delegate
+        //var delegate = new MochaJSDelegate()
+        var dataSource = new MochaJSDelegate()
+        dataSource.setHandlerForSelector("numberOfSectionsInCollectionView:", function(collectionView) {
+            return allImages.length > 0 ? 1 : 0
+        })
+        dataSource.setHandlerForSelector("collectionView:numberOfItemsInSection:", function(collectionView, section) {
+            return allImages.length
+        })
+        dataSource.setHandlerForSelector("collectionView:itemForRepresentedObjectAtIndexPath:", function(collectionView, indexPath) {
+            var collectionViewItem = collectionView.makeItemWithIdentifier_forIndexPath("CollectionViewItem", indexPath)
+            collectionViewItem.imageView.setImage(allImages[0])
+            return collectionViewItem
+        })
+
+
+        // collectionView.setDelegate(delegate)
+        collectionView.setDataSource(dataSource)
+
+        //Flow layout
+        var flowLayout = NSCollectionViewFlowLayout.alloc().init()
+        flowLayout.setItemSize(NSMakeSize(100, 100))
+        flowLayout.setMinimumLineSpacing(5.0)
+        flowLayout.setMinimumInteritemSpacing(5.0)
+        
+        collectionView.setBackgroundColor(NSColor.whiteColor())
+        collectionView.setCollectionViewLayout(flowLayout);
+
+        var itemNib = NSNib.alloc().initWithNibNamed_bundle("Item", nil)
+        collectionView.registerNib_forItemWithIdentifier(itemNib, "CollectionViewItem")
+        
+        contentView.setWantsLayer(true);
+        var contentViewLayer = contentView.layer()
+        contentViewLayer.setFrame( contentView.frame() );
+        contentViewLayer.setMasksToBounds(true);
+
+        contentView.addSubview(collectionView);
+
+        var closeButton = panel.standardWindowButton(NSWindowCloseButton)
+        closeButton.setCOSJSTargetFunction(function(sender) {
+            COScript.currentCOScript().setShouldKeepAround(false);
+            threadDictionary.removeObjectForKey(identifier);
+            panel.close();
+        });
+        closeButton.setAction("callAction:");
+
+        panel.becomeKeyWindow();
+        panel.setLevel(NSFloatingWindowLevel);
+        panel.center();
+        panel.makeKeyAndOrderFront(nil);
     }
 
     function activate() {
