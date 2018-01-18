@@ -1,59 +1,116 @@
 export function fetch(context) {
-   var doc = context.document;
-   var selection = context.selection
+    var sketchVersion = getSketchVersionNumber()
+    var doc = context.document;
+    var selection = context.selection
+    
+    var imagesCollection = []
+    var selectedImages = []
+    var allImages = []
 
     function alert(msg, title) {
         var app = NSApplication.sharedApplication();
         app.displayDialog_withTitle(msg, title || "Hear yee, Hear yee");
     }
 
-    function getFaviconModal() {
-        var userInput = doc.askForUserInput_initialValue("Enter URL of website website (e.g. www.airbnb.com):", "http://");
-        if (userInput !== null) {
-            var url = NSURL.URLWithString(userInput).host;
-            if (url !== null) {
-                fetchThatFavicon(url);
-            }
-            else {
-                 //  alert('bla bla error', 'Destination shape');
-                 getFaviconModal();
-            }
+    function getSketchVersionNumber() {
+        const version = NSBundle.mainBundle().objectForInfoDictionaryKey('CFBundleShortVersionString')
+        var versionNumber = version.stringByReplacingOccurrencesOfString_withString(".", "") + ""
+        while(versionNumber.length != 3) {
+          versionNumber += "0"
         }
+        return parseInt(versionNumber)
     }
 
-    function fetchThatFavicon(url) {
-        var apiURL      = NSURL.URLWithString('https://www.google.com/s2/favicons?domain=' + url);
+    function askForIcons() {
+        var userInput = doc.askForUserInput_initialValue("Please, input your searches", "");
+        if (userInput !== null) {
+            fetchThatIcon(userInput);
+        } else {
+            askForIcons();
+       }
+    }
+
+    function fetchThatIcon(url) {
+        var apiURL      = NSURL.URLWithString('https://thenounproject.com/search/json/icon/?q=' + url + '&page=1&limit=25');
         var request     = NSURLRequest.requestWithURL(apiURL);
         var response    = NSURLConnection.sendSynchronousRequest_returningResponse_error(request, null, null);
 
-        if (!response && response.length() === 0) {
-            alert('No favicon found for URL "' + url + '".', 'No favicon found');
-        }
-        else {
-            log('Found favicon for URL "' + url + '"');
+        var responseString = NSString.alloc().initWithData_encoding(response, NSUTF8StringEncoding);
+        selectedImages = iconUrls(JSON.parse(responseString))
+        selectedImages.length > 0 ? insertToSketch() : alert("Not found", "Error")
+        // if (!response && response.length() === 0) {
+        //   alert(urlArrays);
+        // }
+        // else {
+        // log('Found favicon for URL "' + url + '"');
+        //     var faviconImage = NSImage.alloc().initWithData(response);
+        //     var faviconImageData = MSImageData.alloc().initWithImage_convertColorSpace(faviconImage, false);
+        //     var allLayers = doc.currentPage().layers();
+        //     for (var i = 0; i < selection.count(); i++) {
+        //         var layer = selection[i];
+        //         if (layer.class() == MSShapeGroup) {
+        //             fill = layer.style().fills().firstObject();
+        //             coll = fill.documentData().images();
+        //             fill.setFillType(4);         // Pattern fillType
+        //             fill.setPatternFillType(1);
+        //             fill.setIsEnabled(true);
+        //             fill.setImage(faviconImageData);
+        //         }
+        //     }
+        // }
+    }
 
-            var faviconImage = NSImage.alloc().initWithData(response);
-            var faviconImageData = MSImageData.alloc().initWithImage_convertColorSpace(faviconImage, false);
-            var allLayers = doc.currentPage().layers();
-            for (var i = 0; i < selection.count(); i++) {
-                var layer = selection[i];
-                if (layer.class() == MSShapeGroup) {
-                    fill = layer.style().fills().firstObject();
-                    coll = fill.documentData().images();
-                    fill.setFillType(4);         // Pattern fillType
-                    fill.setPatternFillType(1);
-                    fill.setIsEnabled(true);
-                    fill.setImage(faviconImageData);
-                }
-            }
+    function iconUrls(response) {
+        var urls = [];
+        
+        for (var i = 0; i < response['icons'].length; i++) {
+          var iconUrl = response['icons'][i]['preview_url'];
+          
+          urls.push(iconUrl);
         }
+        
+        return urls;
+    }
+
+    function insertToSketch() {
+        allLayers = doc.currentPage().layers()
+        imagesCollection = loadSelectedImages(selection.count())
+        for (var i = 0; i < selection.count(); i++) {
+          layer = selection[i]
+          if (layer.class() == MSShapeGroup) {
+            imageData = imagesCollection[i]
+            fill = layer.style().fills().firstObject()
+            fill.setFillType(4)
+    
+            if (sketchVersion > 370) {
+              image = MSImageData.alloc().initWithImage(imageData)
+              fill.setImage(image)
+            } else if (sketchVersion < 350) {
+              fill.setPatternImage_collection(imageData, fill.documentData().images())
+            } else {
+              fill.setPatternImage(imageData)
+            }
+            fill.setPatternFillType(1)
+          }
+        }
+    }
+
+    function loadSelectedImages(layersAmount) {
+        numberOfImages = selectedImages.length
+        for (var i = 0; i < layersAmount; i++) {
+            r = Math.floor(Math.random() * numberOfImages)
+            imageUrlString = selectedImages[r]
+            newImage = NSImage.alloc().initWithContentsOfURL(NSURL.URLWithString(imageUrlString))
+            imagesCollection.push(newImage)
+        }
+        return imagesCollection
     }
 
     function activate() {
         if (selection.count() == 0) {
             alert('Please select a shape to fill the favicon into.', 'Destination shape');
         } else {
-            getFaviconModal();
+            askForIcons();
         }
     }
 
