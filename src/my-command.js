@@ -33,9 +33,7 @@ export function fetch(context) {
         var userInput = doc.askForUserInput_initialValue("Please, input your searches", "");
         if (userInput !== null) {
             fetchThatIcon(userInput);
-        } else {
-            askForIcons();
-       }
+        }
     }
 
     function fetchThatIcon(url) {
