@@ -4,15 +4,16 @@
   "commands": [
     {
       "name": "Show me icon from nounproject",
-      "identifier": "my-command-identifier",
-      "script": "./my-command.js",
-      "handler": "fetch"
+      "identifier": "nounproject-run-identifier",
+      "script": "./run.js",
+      "handler": "fetch",
+      "shortcut": "cmd ctrl n"
     }
   ],
   "menu": {
-    "title": "nimbl3-nounproject",
+    "title": "fetch-nounproject",
     "items": [
-      "my-command-identifier"
+      "nounproject-run-identifier"
     ]
   }
 }

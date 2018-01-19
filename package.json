@@ -1,11 +1,14 @@
 {
-  "name": "nimbl3-nounproject",
+  "name": "sketch-plugin-thenounproject",
+  "description": "Plugin to fetch icons from Thenouproject",
+  "author": "Wasupol Tungsakultong, Abhinav Mishra",
+  "homepage": "https://github.com/nimbl3/sketch-plugin-thenounproject",
   "version": "0.1.0",
   "engines": {
     "sketch": ">=3.0"
   },
   "skpm": {
-    "name": "nimbl3-nounproject",
+    "name": "sketch-plugin-thenounproject",
     "manifest": "src/manifest.json",
     "main": "plugin.sketchplugin"
   },
@@ -13,9 +16,12 @@
     "build": "skpm-build && ps aux | grep sketch | grep -v grep | awk '{print \"kill -9 \" $2}' | sh && open -a Sketch",
     "watch": "skpm-build --watch",
     "start": "skpm-build --watch --run",
+    "lint": "eslint . --color",
+    "lint:fix": "eslint . --color --fix",
     "postinstall": "npm run build && skpm-link"
   },
   "devDependencies": {
-    "@skpm/builder": "^0.2.0"
+    "@nimbl3/eslint-config-nimbl3": "^2.0.1",
+    "@skpm/builder": "0.2.0"
   }
 }

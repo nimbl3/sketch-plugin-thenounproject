@@ -1,0 +1,9 @@
+{
+  "extends": [
+    "@nimbl3/eslint-config-nimbl3"
+  ],
+  "rules": {
+    "no-undef": "off",
+    "camelcase": "off"
+  }
+}
