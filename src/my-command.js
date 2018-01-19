@@ -133,6 +133,7 @@ export function fetch(context) {
             var gestureClass = new MochaJSDelegate()
             gestureClass.setHandlerForSelector("gestureRecognizerShouldBegin:", function(gestureRecognizer) {
                 insertToSketch(gestureRecognizer.view().image())
+                return false
             })
             var gesture = gestureClass.getClassInstance()
             var clickGesture = NSClickGestureRecognizer.alloc().initWithTarget_action(nil, "selectedImageView:")
