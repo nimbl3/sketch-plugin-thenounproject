@@ -159,7 +159,6 @@ export function fetch(context) {
         //var delegate = new MochaJSDelegate()
         var dataSourceClass = new MochaJSDelegate({
             "collectionView:itemForRepresentedObjectAtIndexPath:" : (function(collectionView, indexPath) {
-                debugger
                 var collectionViewItem = NSCollectionViewItem.alloc().init()
                 var imageUrlString = allImages[0]
                 collectionViewItem.imageView.setImage(NSImage.alloc().initWithContentsOfURL(NSURL.URLWithString(imageUrlString)))
