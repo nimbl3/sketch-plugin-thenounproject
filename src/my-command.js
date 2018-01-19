@@ -1,4 +1,4 @@
-@import 'MochaJSDelegate.js';
+import MochaJSDelegate from './MochaJSDelegate'
 
 export function fetch(context) {
     var sketchVersion = getSketchVersionNumber()
@@ -8,7 +8,6 @@ export function fetch(context) {
     var imagesCollection = []
     var selectedImages = []
     var allImages = []
-
     function alert(msg, title) {
         var app = NSApplication.sharedApplication();
         app.displayDialog_withTitle(msg, title || "Hear yee, Hear yee");
@@ -50,17 +49,14 @@ export function fetch(context) {
     }
 
     function iconUrls(response) {
-        var imagesFromURL = [];
+        var imagesString = [];
         
         for (var i = 0; i < response['icons'].length; i++) {
           var iconUrlString = response['icons'][i]['preview_url'];
-          if (iconUrlString) {
-                var newImage = NSImage.alloc().initWithContentsOfURL(NSURL.URLWithString(iconUrlString))
-                imagesFromURL.push(newImage);
-            }
+          imagesString.push(iconUrlString) 
         }
         
-        return imagesFromURL;
+        return imagesString;
     }
 
     function insertToSketch() {
@@ -109,7 +105,7 @@ export function fetch(context) {
             return;
         }
 
-        var frame = NSMakeRect(0, 0, 400, 550);
+        var frame = NSMakeRect(0, 0, 400, 400);
 
         var panel = NSPanel.alloc().init();
         panel.setTitle(title);
@@ -128,45 +124,49 @@ export function fetch(context) {
 
         var contentView = panel.contentView();
         var collectionView = NSCollectionView.alloc().initWithFrame(NSMakeRect(0, 0, frame.size.width, frame.size.height));
-        
-        //datasource & delegate
-        //var delegate = new MochaJSDelegate()
-        var dataSource = new MochaJSDelegate()
-        dataSource.setHandlerForSelector("numberOfSectionsInCollectionView:", function(collectionView) {
-            return allImages.length > 0 ? 1 : 0
-        })
-        dataSource.setHandlerForSelector("collectionView:numberOfItemsInSection:", function(collectionView, section) {
-            return allImages.length
-        })
-        dataSource.setHandlerForSelector("collectionView:itemForRepresentedObjectAtIndexPath:", function(collectionView, indexPath) {
-            var collectionViewItem = collectionView.makeItemWithIdentifier_forIndexPath("CollectionViewItem", indexPath)
-            collectionViewItem.imageView.setImage(allImages[0])
-            return collectionViewItem
-        })
-
-
-        // collectionView.setDelegate(delegate)
-        collectionView.setDataSource(dataSource)
-
+        var imageView = NSImageView.alloc().initWithFrame(NSMakeRect(0, 0, frame.size.width, frame.size.height))
+        var imageUrlString = allImages[0]
+        imageView.setImage(NSImage.alloc().initWithContentsOfURL(NSURL.URLWithString(imageUrlString)))
+                
         //Flow layout
         var flowLayout = NSCollectionViewFlowLayout.alloc().init()
-        flowLayout.setItemSize(NSMakeSize(100, 100))
+        flowLayout.setItemSize(NSMakeSize(80, 80))
         flowLayout.setMinimumLineSpacing(5.0)
         flowLayout.setMinimumInteritemSpacing(5.0)
         
         collectionView.setBackgroundColor(NSColor.whiteColor())
         collectionView.setCollectionViewLayout(flowLayout);
 
-        var itemNib = NSNib.alloc().initWithNibNamed_bundle("Item", nil)
-        collectionView.registerNib_forItemWithIdentifier(itemNib, "CollectionViewItem")
+        // var itemNib = NSNib.alloc().initWithNibNamed_bundle("Item", null)
+        // collectionView.registerNib_forItemWithIdentifier(itemNib, "CollectionViewItem")
         
+        //datasource & delegate
+        //var delegate = new MochaJSDelegate()
+        var dataSourceClass = new MochaJSDelegate({
+            "collectionView:itemForRepresentedObjectAtIndexPath:" : (function(collectionView, indexPath) {
+                debugger
+                var collectionViewItem = NSCollectionViewItem.alloc().init()
+                var imageUrlString = allImages[0]
+                collectionViewItem.imageView.setImage(NSImage.alloc().initWithContentsOfURL(NSURL.URLWithString(imageUrlString)))
+                return collectionViewItem
+            }),
+            "collectionView:numberOfItemsInSection:" : (function(collectionView, section) {
+                return 5
+            }) 
+        })
+        var dataSource = dataSourceClass.getClassInstance()
+
+        // collectionView.setDelegate(delegate)
+        collectionView.setDataSource(dataSource)
+        // collectionView.reloadData()
+
         contentView.setWantsLayer(true);
         var contentViewLayer = contentView.layer()
         contentViewLayer.setFrame( contentView.frame() );
         contentViewLayer.setMasksToBounds(true);
 
-        contentView.addSubview(collectionView);
-
+        contentView.addSubview(imageView);
+        
         var closeButton = panel.standardWindowButton(NSWindowCloseButton)
         closeButton.setCOSJSTargetFunction(function(sender) {
             COScript.currentCOScript().setShouldKeepAround(false);
@@ -178,7 +178,7 @@ export function fetch(context) {
         panel.becomeKeyWindow();
         panel.setLevel(NSFloatingWindowLevel);
         panel.center();
-        panel.makeKeyAndOrderFront(nil);
+        panel.makeKeyAndOrderFront(null);
     }
 
     function activate() {
@@ -188,9 +188,8 @@ export function fetch(context) {
             askForIcons();
         }
     }
-
+    
     activate();
-
 }
 
 
@@ -231,7 +230,7 @@ export function fetch(context) {
 //         var request     = [NSURLRequest requestWithURL:apiURL];
 //         var response    = NSURLConnection.sendSynchronousRequest_returningResponse_error(request, null, null);
 
-//         var json = [NSJSONSerialization JSONObjectWithData:response options:nil error:nil];
+//         var json = [NSJSONSerialization JSONObjectWithData:response options:null error:null];
 
 //         var imgUrlString = json.results[0].image_icon;
 //         var imgURL      = [NSURL URLWithString:imgUrlString];
