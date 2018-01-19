@@ -78,3 +78,5 @@ var MochaJSDelegate = function(selectorHandlerDict){
     }
   }
 };
+
+export default MochaJSDelegate;
