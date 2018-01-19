@@ -7,76 +7,76 @@
 //
 
 var MochaJSDelegate = function(selectorHandlerDict){
-  var uniqueClassName = "MochaJSDelegate_DynamicClass_" + NSUUID.UUID().UUIDString();
+	var uniqueClassName = "MochaJSDelegate_DynamicClass_" + NSUUID.UUID().UUIDString();
 
-  var delegateClassDesc = MOClassDescription.allocateDescriptionForClassWithName_superclass_(uniqueClassName, NSObject);
+	var delegateClassDesc = MOClassDescription.allocateDescriptionForClassWithName_superclass_(uniqueClassName, NSObject);
+	
+	delegateClassDesc.registerClass();
 
-  delegateClassDesc.registerClass();
+	//	Handler storage
 
-  //  Handler storage
+	var handlers = {};
 
-  var handlers = {};
+	//	Define interface
 
-  //  Define interface
+	this.setHandlerForSelector = function(selectorString, func){
+		var handlerHasBeenSet = (selectorString in handlers);
+		var selector = NSSelectorFromString(selectorString);
 
-  this.setHandlerForSelector = function(selectorString, func){
-    var handlerHasBeenSet = (selectorString in handlers);
-    var selector = NSSelectorFromString(selectorString);
+		handlers[selectorString] = func;
 
-    handlers[selectorString] = func;
+		if(!handlerHasBeenSet){
+			/*
+				For some reason, Mocha acts weird about arguments:
+				https://github.com/logancollins/Mocha/issues/28
 
-    if(!handlerHasBeenSet){
-      /*
-        For some reason, Mocha acts weird about arguments:
-        https://github.com/logancollins/Mocha/issues/28
+				We have to basically create a dynamic handler with a likewise dynamic number of predefined arguments.
+			*/
 
-        We have to basically create a dynamic handler with a likewise dynamic number of predefined arguments.
-      */
+			var dynamicHandler = function(){
+				var functionToCall = handlers[selectorString];
 
-      var dynamicHandler = function(){
-        var functionToCall = handlers[selectorString];
+				if(!functionToCall) return;
 
-        if(!functionToCall) return;
+				return functionToCall.apply(delegateClassDesc, arguments);
+			};
 
-        return functionToCall.apply(delegateClassDesc, arguments);
-      };
+			var args = [], regex = /:/g;
+			while(match = regex.exec(selectorString)) args.push("arg"+args.length);
+			
+			dynamicFunction = eval("(function("+args.join(",")+"){ return dynamicHandler.apply(this, arguments); })");
 
-      var args = [], regex = /:/g;
-      while(match = regex.exec(selectorString)) args.push("arg"+args.length);
+			delegateClassDesc.addInstanceMethodWithSelector_function_(selector, dynamicFunction);
+		}
+	};
 
-      dynamicFunction = eval("(function("+args.join(",")+"){ return dynamicHandler.apply(this, arguments); })");
+	this.removeHandlerForSelector = function(selectorString){
+		delete handlers[selectorString];
+	};
 
-      delegateClassDesc.addInstanceMethodWithSelector_function_(selector, dynamicFunction);
-    }
-  };
+	this.getHandlerForSelector = function(selectorString){
+		return handlers[selectorString];
+	};
 
-  this.removeHandlerForSelector = function(selectorString){
-    delete handlers[selectorString];
-  };
+	this.getAllHandlers = function(){
+		return handlers;
+	};
 
-  this.getHandlerForSelector = function(selectorString){
-    return handlers[selectorString];
-  };
+	this.getClass = function(){
+		return NSClassFromString(uniqueClassName);
+	};
 
-  this.getAllHandlers = function(){
-    return handlers;
-  };
+	this.getClassInstance = function(){
+		return NSClassFromString(uniqueClassName).new();
+	};
 
-  this.getClass = function(){
-    return NSClassFromString(uniqueClassName);
-  };
+	//	Conveience
 
-  this.getClassInstance = function(){
-    return NSClassFromString(uniqueClassName).new();
-  };
-
-  //  Conveience
-
-  if(typeof selectorHandlerDict == "object"){
-    for(var selectorString in selectorHandlerDict){
-      this.setHandlerForSelector(selectorString, selectorHandlerDict[selectorString]);
-    }
-  }
+	if(typeof selectorHandlerDict == "object"){
+		for(var selectorString in selectorHandlerDict){
+			this.setHandlerForSelector(selectorString, selectorHandlerDict[selectorString]);
+		}
+	}
 };
 
 export default MochaJSDelegate;
