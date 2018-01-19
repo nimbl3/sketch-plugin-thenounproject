@@ -59,13 +59,12 @@ export function fetch(context) {
         return imagesString;
     }
 
-    function insertToSketch() {
+    function insertToSketch(imageData) {
         allLayers = doc.currentPage().layers()
-        imagesCollection = loadSelectedImages(selection.count())
+        // imagesCollection = loadSelectedImages(selection.count())
         for (var i = 0; i < selection.count(); i++) {
           layer = selection[i]
           if (layer.class() == MSShapeGroup) {
-            imageData = imagesCollection[i]
             fill = layer.style().fills().firstObject()
             fill.setFillType(4)
     
@@ -105,7 +104,7 @@ export function fetch(context) {
             return;
         }
 
-        var frame = NSMakeRect(0, 0, 400, 400);
+        var frame = NSMakeRect(0, 0, 300, 350);
 
         var panel = NSPanel.alloc().init();
         panel.setTitle(title);
@@ -124,9 +123,24 @@ export function fetch(context) {
 
         var contentView = panel.contentView();
         var collectionView = NSCollectionView.alloc().initWithFrame(NSMakeRect(0, 0, frame.size.width, frame.size.height));
-        var imageView = NSImageView.alloc().initWithFrame(NSMakeRect(0, 0, frame.size.width, frame.size.height))
-        var imageUrlString = allImages[0]
-        imageView.setImage(NSImage.alloc().initWithContentsOfURL(NSURL.URLWithString(imageUrlString)))
+        for (var i = 0; i < allImages.length; i++) {
+            var row = parseInt(i / 5)
+            var column = i % 5
+            var imageView = NSImageView.alloc().initWithFrame(NSMakeRect(60 * row, 60 * column, 50, 50))
+            var imageUrlString = allImages[i]
+            imageView.setImage(NSImage.alloc().initWithContentsOfURL(NSURL.URLWithString(imageUrlString)))
+
+            var gestureClass = new MochaJSDelegate()
+            gestureClass.setHandlerForSelector("gestureRecognizerShouldBegin:", function(gestureRecognizer) {
+                insertToSketch(gestureRecognizer.view().image())
+            })
+            var gesture = gestureClass.getClassInstance()
+            var clickGesture = NSClickGestureRecognizer.alloc().initWithTarget_action(nil, "selectedImageView:")
+            clickGesture.setNumberOfClicksRequired(1)
+            clickGesture.setDelegate(gesture)
+            imageView.addGestureRecognizer(clickGesture)
+            contentView.addSubview(imageView);
+        }
                 
         //Flow layout
         var flowLayout = NSCollectionViewFlowLayout.alloc().init()
@@ -165,7 +179,7 @@ export function fetch(context) {
         contentViewLayer.setFrame( contentView.frame() );
         contentViewLayer.setMasksToBounds(true);
 
-        contentView.addSubview(imageView);
+        //contentView.addSubview(imageView);
         
         var closeButton = panel.standardWindowButton(NSWindowCloseButton)
         closeButton.setCOSJSTargetFunction(function(sender) {
