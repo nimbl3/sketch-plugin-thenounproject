@@ -42,6 +42,11 @@ export function fetch(context) {
         var request     = NSURLRequest.requestWithURL(apiURL);
         var response    = NSURLConnection.sendSynchronousRequest_returningResponse_error(request, null, null);
 
+        if (!response) {
+            alert("Having errors while fetching icons", "Error")
+            return null
+        }
+
         var responseString = NSString.alloc().initWithData_encoding(response, NSUTF8StringEncoding);
         allImages = iconUrls(JSON.parse(responseString))
         allImages.length > 0 ? showSelectableImages() : alert("Not found", "Error")
