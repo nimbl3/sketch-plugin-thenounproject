@@ -10,7 +10,7 @@
     "main": "plugin.sketchplugin"
   },
   "scripts": {
-    "build": "skpm-build",
+    "build": "skpm-build && ps aux | grep sketch | grep -v grep | awk '{print \"kill -9 \" $2}' | sh && open -a Sketch",
     "watch": "skpm-build --watch",
     "start": "skpm-build --watch --run",
     "postinstall": "npm run build && skpm-link"

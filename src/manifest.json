@@ -3,9 +3,10 @@
   "bundleVersion": 1,
   "commands": [
     {
-      "name": "my-command",
+      "name": "Show me icon from nounproject",
       "identifier": "my-command-identifier",
-      "script": "./my-command.js"
+      "script": "./my-command.js",
+      "handler": "fetch"
     }
   ],
   "menu": {
