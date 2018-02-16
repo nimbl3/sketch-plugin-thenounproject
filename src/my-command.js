@@ -166,7 +166,7 @@ export function fetch(context) {
     }
 
     function highlightedImage(imageView) {
-        imageView.setImageFrameStyle(NSImageFrameGrayBezel)
+        imageView.setImageFrameStyle(NSImageFramePhoto)
         imageViews.forEach(otherImageView => {
             if (otherImageView == imageView) {
                 return
