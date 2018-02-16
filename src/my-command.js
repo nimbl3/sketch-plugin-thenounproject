@@ -8,6 +8,7 @@ export function fetch(context) {
     var imagesCollection = []
     var selectedImages = []
     var allImages = []
+    var imageViews = []
     function alert(msg, title) {
         var app = NSApplication.sharedApplication();
         app.displayDialog_withTitle(msg, title || "Hear yee, Hear yee");
@@ -119,6 +120,7 @@ export function fetch(context) {
         COScript.currentCOScript().setShouldKeepAround(true);
 
         var contentView = panel.contentView();
+        imageViews = []
         for (var i = 0; i < allImages.length; i++) {
             var row = parseInt(i / 5)
             var column = i % 5
@@ -128,7 +130,9 @@ export function fetch(context) {
 
             var gestureClass = new MochaJSDelegate()
             gestureClass.setHandlerForSelector("gestureRecognizerShouldBegin:", function(gestureRecognizer) {
-                insertToSketch(gestureRecognizer.view().image())
+                var imageView = gestureRecognizer.view()
+                insertToSketch(imageView.image())
+                highlightedImage(imageView)
                 return false
             })
             var gesture = gestureClass.getClassInstance()
@@ -136,6 +140,9 @@ export function fetch(context) {
             clickGesture.setNumberOfClicksRequired(1)
             clickGesture.setDelegate(gesture)
             imageView.addGestureRecognizer(clickGesture)
+
+            imageViews.push(imageView)
+
             contentView.addSubview(imageView);
         }
                 
@@ -156,6 +163,16 @@ export function fetch(context) {
         panel.setLevel(NSFloatingWindowLevel);
         panel.center();
         panel.makeKeyAndOrderFront(null);
+    }
+
+    function highlightedImage(imageView) {
+        imageView.setImageFrameStyle(NSImageFrameGrayBezel)
+        imageViews.forEach(otherImageView => {
+            if (otherImageView == imageView) {
+                return
+            } 
+            otherImageView.setImageFrameStyle(NSImageFrameNone) 
+        });
     }
 
     function activate() {
